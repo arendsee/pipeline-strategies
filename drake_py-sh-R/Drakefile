@@ -1,0 +1,39 @@
+; My practice workflow
+; 
+; sorted-random-data <- random-data.txt [shell]
+;     sort -n $INPUT > $OUTPUT
+; 
+; random-data.txt <- [R]
+;     write(rnorm(100), file='$[OUTPUT]', sep="\n")
+
+O_WEBDATA=webpage.html
+O_PLAIN=webpage.md
+O_WC=wc-hist.png
+
+$[O_WC] <- $[O_PLAIN] [R]
+    require(magrittr)
+    #corpus <- scan('$[INPUT]', what='character') %>%
+    png('$[OUTPUT]')
+    corpus <- scan('webpage.md', what='character') %>%
+        lapply(nchar) %>%
+        unlist %>%
+        log2 %>%
+        hist
+    dev.off()
+
+$[O_PLAIN] <- $[O_WEBDATA] [shell]
+    pandoc -o $OUTPUT $INPUT 
+
+$[O_WEBDATA] <- [python]
+    import httplib2
+    h = httplib2.Http()
+    resp, content = h.request("http://bitworking.org/")
+    with open('$[O_WEBDATA]', 'wb') as fo:
+        fo.write(content)
+
+; run by calling
+; $ drake %clean
+%clean <- [shell]
+    rm -f $O_WEBDATA $O_PLAIN $O_WC
+    rm -f drake.{png,log}
+    rm -rf .drake
